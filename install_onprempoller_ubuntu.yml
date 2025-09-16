@@ -14,7 +14,12 @@
 
   - name: Install SNMP utils
     ansible.builtin.apt:
-      name: net-snmp-utils
+      name: snmp
+      state: present
+
+  - name: Install unzip
+    ansible.builtin.apt:
+      name: unzip
       state: present
 
   - name: Check if Site24x7OnPremisePoller_64bit.bin exists
