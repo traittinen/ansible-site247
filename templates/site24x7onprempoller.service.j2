@@ -1,0 +1,16 @@
+[Unit]
+Description=Site24x7 OnPremise Poller
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+WorkingDirectory=/opt/Site24x7OnPremisePoller/
+ExecStart=/opt/Site24x7OnPremisePoller/StartServer.sh
+ExecStop=/opt/Site24x7OnPremisePoller/StopServer.sh
+
+[Install]
+WantedBy=multi-user.target

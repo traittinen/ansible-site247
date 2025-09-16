@@ -1,0 +1,71 @@
+---
+- name: Install Site24x7 Onpremise Poller
+  hosts: localhost
+  connection: local 
+  become: true
+
+  vars_prompt:
+
+    - name: site24z7_device_key
+      prompt: Enter Site24x7 Device Key
+      private: no
+
+  tasks:
+
+  - name: Install SNMP utils
+    ansible.builtin.apt:
+      name: net-snmp-utils
+      state: present
+
+  - name: Check if Site24x7OnPremisePoller_64bit.bin exists
+    ansible.builtin.stat:
+      path: /tmp/Site24x7OnPremisePoller_64bit.bin
+    register: stat_result
+
+  - name: Download Site24x7 onpremise poller
+    ansible.builtin.get_url:
+      url: http://staticdownloads.site24x7.com/probe/Site24x7OnPremisePoller_64bit.bin
+      dest: /tmp/Site24x7OnPremisePoller_64bit.bin
+      mode: '0755'
+    when: not stat_result.stat.exists
+
+  - name: Check if Onpremise Poller is already installed
+    ansible.builtin.stat:
+      path: /opt/Site24x7OnPremisePoller/StartServer.sh
+    register: onprempoller_startserver
+
+  - name: Run Site24x7 onpremise poller installer
+    ansible.builtin.shell: /tmp/Site24x7OnPremisePoller_64bit.bin -i silent
+    when: not onprempoller_startserver.stat.exists
+   
+  - name: Create config file for onpremise poller installer
+    ansible.builtin.template:
+      src: install.j2
+      dest: /opt/Site24x7OnPremisePoller/conf/install.txt
+
+  - name: Check if Network Module is already installed
+    ansible.builtin.stat:
+      path: /opt/Site24x7OnPremisePoller/NetworkPlus
+    register: netmodule_path
+
+  - name: Download and unzip Network Module if not installed already
+    ansible.builtin.unarchive:
+      src: http://staticdownloads.site24x7.com/network/Networkplus_lin.zip
+      dest: /opt/Site24x7OnPremisePoller
+      remote_src: yes
+    when: netmodule_path.stat.isdir is not defined
+
+  - name: Install Site24x7 service file
+    ansible.builtin.template: 
+      src: site24x7onprempoller.service.j2
+      dest: /etc/systemd/system/site24x7onprempoller.service
+
+  - name: Reload systemd to pick up new service
+    ansible.builtin.systemd:
+      daemon_reload: yes
+
+  - name: Start Site24x7 OnpremPoller service
+    ansible.builtin.systemd:
+      name: site24x7onprempoller
+      state: started
+      enabled: yes
